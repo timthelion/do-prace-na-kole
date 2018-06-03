@@ -284,6 +284,11 @@ urlpatterns = [
         name="trip_geojson",
     ),
     url(
+        r'^favorites/$',
+        views.FavoriteTripsView.as_view(),
+        name="favorites",
+    ),
+    url(
         r'^emisni_kalkulacka/$',
         views.UserAttendanceView.as_view(
             template_name="registration/emission_calculator.html",

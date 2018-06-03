@@ -1,0 +1,42 @@
+{% load i18n %}
+{% load l10n %}
+<script>
+ var urls = {};
+{% for trip in favorites%}
+urls[{{trip.id}}] = "{% url "trip_geojson" date=trip.date direction=trip.direction %}";
+{% endfor %}
+function load_favorite_map(fav_id) {
+ map = window["leafletmapid_track-map"]
+ lgf = window["leaflet-geometry-field"]
+ lgf.clear()
+ if (fav_id === null) {
+     return
+ }
+ $.ajax({
+ dataType: "json",
+ url: urls[fav_id],
+ type: "get",
+ data: {
+    geom: 'LineStrings',
+ },
+ success: function(data) {
+    for (i in data) {
+        var geojson_layer  = L.GeoJSON.geometryToLayer(data[i]);
+        lgf.drawnItems.addLayer(geojson_layer)
+        map.fitBounds(geojson_layer.getBounds())
+    }
+    lgf.store.save(lgf.drawnItems)
+ }
+ }).error(function() {});
+}
+</script>
+<div class="dropdown">
+<button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">{% trans "Vybrat z oblibených" %}&nbsp;<span class="caret"></span></button>
+<ul class="dropdown-menu" style="z-index: 10000;">
+    <li><a onclick="load_favorite_map(null);" style="text-decoration: none"><pre>{% trans "Vyprazdnit" %}</pre></a></li>
+{% for trip in favorites %}
+    <li><a onclick="load_favorite_map({{trip.pk}});" style="text-decoration: none"><pre>{{ trip.get_description }}</pre></a></li>
+{% endfor %}
+</ul>
+</div>
+{% include "leaflet/widget.html" %}

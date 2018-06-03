@@ -1934,8 +1934,15 @@ class TripView(TitleViewMixin, LoginRequiredMixin, WithTripMixin, TemplateView):
 
 class TripGeoJsonView(LoginRequiredMixin, WithTripMixin, View):
     def get(self, *args, **kwargs):
+        geom = self.request.GET.get('geom', 'MultiLineString')
         if self.get_object().track:
-            track_json = self.get_object().track.geojson
+            if geom == 'MultiLineString':
+                track_json = self.get_object().track.geojson
+            if geom == 'LineStrings':
+                linestrings = []
+                for ls in self.get_object().track:
+                    linestrings.append(ls.geojson)
+                track_json = "[" + ",".join(linestrings) + "]"
         else:
             track_json = {}
         return HttpResponse(track_json)
@@ -1945,3 +1952,33 @@ def status(request):
     status_page = str(datetime.datetime.now()) + '\n'
     status_page += socket.gethostname()
     return HttpResponse(status_page)
+
+
+class FavoriteTripsView(LoginRequiredMixin, UserAttendanceViewMixin, TemplateView):
+    template_name = 'registration/favorite_trips.html'
+    title = _("Oblibené trasy")
+
+    def get_context_data(self, *args, **kwargs):
+        favorites = models.Trip.objects.filter(user_attendance=self.request.user_attendance, favorite=True)
+        context = {
+            "title": self.title,
+            "favorites": favorites,
+        }
+        return context
+
+    def post(self, request, *args, **kwargs):
+        instance = get_object_or_404(
+            models.Trip,
+            user_attendance=request.user_attendance,
+            direction=request.POST.get('direction', None),
+            date=request.POST.get('date', None),
+        )
+        form = forms.FavoriteTripForm(data=request.POST, instance=instance)
+        if form.is_valid():
+            form.save()
+            if instance.favorite:
+                request.user_attendance.track = instance.track
+                request.user_attendance.save()
+            return super().get(request, *args, **kwargs)
+        else:
+            raise exceptions.TemplatePermissionDenied(form.errors)

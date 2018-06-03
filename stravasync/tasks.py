@@ -102,6 +102,8 @@ def sync_activity(activity, hashtag_table, strava_account, sclient, stats):  # n
             'source_id': activity.id,
             'from_application': True,
         }
+        if type(activity.name) == str:
+            form_data['description'] = activity.name
         if activity.map.summary_polyline:
             form_data['track'] = get_track(activity.map.summary_polyline)
         if activity.map.polyline:

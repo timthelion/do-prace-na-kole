@@ -2,6 +2,7 @@
 import os
 import sys
 
+sys.path.append("./django-leaflet")
 # # BEGIN activacte virtualenv
 # from project.settings import PROJECT_ROOT, normpath
 #

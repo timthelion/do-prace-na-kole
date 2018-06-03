@@ -2,12 +2,67 @@
 {% load i18n %}
 {% load dpnk_tags %}
 {% load leaflet_tags %}
+{% load static %}
 
 {% block extrahead %}
 {% leaflet_js %}
 {% leaflet_css %}
+<link rel='stylesheet' href='{% static "bow/qtip2/jquery.qtip.min.css"%}' />
+<script src='{% static "bow/qtip2/jquery.qtip.min.js"%}'></script>
+<script>
+function set_favorite(favorite, reload){
+    $.post("{% url "favorites" %}",
+          {
+              date:"{{trip.get_iso_date}}",
+              direction:"{{trip.direction}}",
+              favorite:favorite,
+              csrfmiddlewaretoken: "{{ csrf_token }}",
+          },
+          function(returnedData){
+              if (reload) {
+                  window.location.reload(true);
+              }
+          }
+          )
+}
+function unfavorite(){
+    set_favorite(false, true);
+}
+function favorite(){
+    $('#star-icon').attr("class","fa fa-star");
+    set_favorite(true, false);
+}
+
+$(document).ready(function()
+{
+     // Show tooltip on all <a/> elements with title attributes, but only when
+     // clicked. Clicking again will hide it.
+     $('#favorite-btn').qtip({
+         show: 'click',
+         hide: 'click',
+         content: {
+             title: '{% trans "Přidat cestu mezi oblibených" %}',
+             text: '<form action="{% url "favorites" %}" method="post" id="favorite-form">' +
+                   "{% csrf_token %}" +
+                   '<label for="description">{% trans "Popis" %}</label>' +
+                   '<textarea name="description">{{trip.description}}</textarea>' +
+                   '<input type="hidden" name="date" value="{{trip.get_iso_date}}">' +
+                   '<input type="hidden" name="direction" value="{{trip.direction}}">' +
+                   '<input type="hidden" name="favorite" id="favorite-field" value=true>' +
+                   '<br/>' +
+                   '<input type="submit" class="btn btn-primary" value="{% trans "Odeslat" %}"></input>' +
+                   '</form>' +
+                   '<br/>' +
+                   '<button class="btn btn-primary" onclick="unfavorite()">{% trans "Odstranit ze oblibených"%}</button>'
+         },
+         style: {classes: 'qtip-bootstrap'},
+         position: {my: 'top right', at: 'bottom left'}
+     });
+});
+</script>
 {% endblock %}
 {% block content %}
+<button style="float:right;" id="favorite-btn" onclick="favorite()"><i id="star-icon" class="fa {% if trip.favorite %}fa-star{% else %}fa-star-o{% endif %}"></i></button>
 <p align="center">
 {% blocktrans %}Podle pravidel soutěže, nemůžete zadavat ani změnit jízdy starší než {{days_active}} dnů.{% endblocktrans %}
 </p>

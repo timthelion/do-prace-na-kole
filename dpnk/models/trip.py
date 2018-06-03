@@ -32,7 +32,7 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils.safestring import mark_safe
 from django.utils.text import slugify
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext as _
 
 from django_gpxpy import gpx_parse
 
@@ -158,6 +158,16 @@ class Trip(models.Model):
         auto_now=True,
         null=True,
     )
+    description = models.TextField(
+        verbose_name=_(u"Popis trasy"),
+        default="",
+        blank=True,
+    )
+    favorite = models.BooleanField(
+        verbose_name=_(u"Označit trasa jako oblibené"),
+        default=False,
+        blank=True,
+    )
 
     def active(self):
         return self.user_attendance.campaign.day_active(self.date)
@@ -180,6 +190,14 @@ class Trip(models.Model):
         if self.source_application == 'strava':
             return "<a href='%sactivities/%s'>View on Strava</a>" % (self.get_application_link(), self.source_id)
         return ""
+
+    def get_iso_date(self):
+        return str(self.date)
+
+    def get_description(self):
+        if self.description:
+            return self.description
+        return str(self.date) + ' ' + self.DIRECTIONS_DICT[self.direction]
 
 
 @receiver(pre_save, sender=Trip)

@@ -1,0 +1,82 @@
+{% extends "base_generic.html" %}
+{% load i18n %}
+{% load dpnk_tags %}
+{% load leaflet_tags %}
+{% load static %}
+
+{% block extrahead %}
+{% leaflet_js %}
+{% leaflet_css %}
+<script type="text/javascript">
+// https://gis.stackexchange.com/questions/68489/loading-external-geojson-file-into-leaflet-map#98411
+var urls = {};
+{% for trip in favorites%}
+urls[{{trip.id}}] = "{% url "trip_geojson" date=trip.date direction=trip.direction %}";
+{% endfor %}
+function load_track (map, options) {
+ var track_geojson = L.geoJson();
+ track_geojson.addTo(map);
+ $.ajax({
+ dataType: "json",
+ url: urls[map._container.id],
+ success: function(data) {
+    track_geojson.addData(data);
+    map.fitBounds(track_geojson.getBounds())
+ }
+ }).error(function() {});
+}
+jQuery(document).ready(function($) {
+    $(".clickable-row").click(function() {
+        window.location = $(this).data("href");
+    });
+});
+</script>
+{% endblock %}
+
+{% block content %}
+{% if favorites %}
+<table class="table table-hover">
+   {% for trip in favorites%}
+   {% if trip.description %}
+   <tr class="clickable-row" data-href="{% url "trip" date=trip.date direction=trip.direction %}">
+    <td colspan=5>
+      <b>{{trip.description}}</b>
+    </td>
+   </tr>
+   {% endif %}
+   <tr>
+      <td>{{ trip.date }}</td>
+      <td>{{ trip.get_direction_display }}</td>
+      <td>{{ trip.get_commute_mode_display }}</td>
+      <td>
+      {% if trip.distance and trip.commute_mode.does_count %}
+      {{ trip.distance|floatformat:1 }}&nbsp;{% trans 'km' %}
+      {% else %}
+      -
+      {% endif %}
+      </td>
+      <td>
+         <form action="./" method="post">
+         {% csrf_token %}
+         <input type="hidden" name="date" value="{{trip.get_iso_date}}">
+         <input type="hidden" name="direction" value="{{trip.direction}}">
+         <input type="hidden" name="favorite" id="favorite-field" value=false>
+         <button type="submit" class="btn">
+             <i class="fa fa-ban"></i>
+         </button>
+         </form>
+      </td>
+   </tr>
+   <tr>
+    <td colspan=5>
+        {% leaflet_map trip.id callback="window.load_track" %}
+     </td>
+   </tr>
+   {% endfor %}
+</table>
+{% else %}
+{% blocktrans %}
+Nejsou žádné trasy označené jako oblíbené. Označite trasu jako oblibené tím, že najdete trip kterou má trasu kterou chcete označit jako oblibené a klikňete na hvězdu.
+{% endblocktrans %}
+{% endif %}
+{% endblock %}

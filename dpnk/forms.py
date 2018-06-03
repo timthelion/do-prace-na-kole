@@ -71,6 +71,9 @@ class RequiredFieldsMixin():
 
 
 class UserLeafletWidget(LeafletWidget):
+    geometry_field_class = 'ClearableGeometryField'
+    template_name = 'widgets/leaflet.html'
+
     def __init__(self, *args, **kwargs):
         user_attendance = kwargs['user_attendance']
         settings_overrides = {}
@@ -83,7 +86,8 @@ class UserLeafletWidget(LeafletWidget):
                 "geom_type": 'MULTILINESTRING',
                 "map_height": "500px",
                 "map_width": "100%",
-                'settings_overrides': settings_overrides,
+                "settings_overrides": settings_overrides,
+                "favorites": models.Trip.objects.filter(user_attendance=user_attendance, favorite=True),
             },
         )
 
@@ -1053,7 +1057,9 @@ class TrackTripForm(FormWithTrackMixin, SubmitMixin, TripForm):
             'date',
             'track',
             'gpx_file',
-            'origin'
+            'origin',
+            'favorite',
+            'description',
         )
         widgets = {
             **TripForm.Meta.widgets,
@@ -1094,4 +1100,16 @@ class FullTripForm(forms.ModelForm):
             'source_application',
             'source_id',
             'from_application',
+            'description',
+        )
+
+
+class FavoriteTripForm(forms.ModelForm):
+    class Meta:
+        model = models.Trip
+        fields = (
+            'direction',
+            'date',
+            'favorite',
+            'description',
         )
